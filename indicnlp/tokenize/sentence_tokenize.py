@@ -234,7 +234,7 @@ def sentence_split(text,lang,delim_pat='auto'): ## New signature
         p2=mo.end()
         
         ## NEW
-        if p1>0 and text[p1-1].isnumeric():
+        if text[p1] == '.' and (p1>0 and text[p1-1].isnumeric()) and (p1+1 < len(text) and text[p1+1].isnumeric()):
             continue
         
         ## Prevents splitting on "." in URLs/emails in indic texts.
@@ -244,14 +244,24 @@ def sentence_split(text,lang,delim_pat='auto'): ## New signature
                     continue
 
         end=p1+1
-        s= text[begin:end].strip()
+        s = text[begin:end]#.strip()
         if len(s)>0:
-            cand_sentences.append(s)
+            if len(s.strip()) == 1:
+                if not cand_sentences:
+                    cand_sentences.append('')
+                cand_sentences[-1] += s
+            else:
+                cand_sentences.append(s)
         begin=p1+1
 
-    s= text[begin:].strip()
+    s= text[begin:]#.strip()
     if len(s)>0:
-        cand_sentences.append(s)
+        if len(s.strip()) == 1:
+            if not cand_sentences:
+                cand_sentences.append('')
+            cand_sentences[-1] += s
+        else:
+            cand_sentences.append(s)
 
     if not delim_pat.search('.'):
         ## run phase 2 only if delimiter pattern contains period
@@ -270,21 +280,21 @@ def sentence_split(text,lang,delim_pat='auto'): ## New signature
     bad_state=False
 
     for i, sentence in enumerate(cand_sentences): 
-        words=sentence.split(' ')
+        words=sentence.strip().split(' ')
         #if len(words)<=2 and words[-1]=='.':
         if len(words)==1 and sentence[-1]=='.':
             bad_state=True
-            sen_buffer = sen_buffer + ' ' + sentence
+            sen_buffer = sen_buffer + sentence
         ## NEW condition    
         elif sentence[-1]=='.' and is_acronym_abbvr(words[-1][:-1],lang):
             if len(sen_buffer)>0 and not bad_state:
                 final_sentences.append(sen_buffer)
                 sen_buffer = sentence
             else:
-                sen_buffer = sen_buffer + ' ' + sentence
+                sen_buffer = sen_buffer + sentence
             bad_state=True
         elif bad_state:
-            sen_buffer = sen_buffer + ' ' + sentence
+            sen_buffer = sen_buffer + sentence
             if len(sen_buffer)>0:
                 final_sentences.append(sen_buffer)
             sen_buffer=''
@@ -298,7 +308,7 @@ def sentence_split(text,lang,delim_pat='auto'): ## New signature
     if len(sen_buffer)>0:
         final_sentences.append(sen_buffer)
         
-    for i in range(0, len(final_sentences)):
-        final_sentences[i] = CONTAINS_MULTIPLE_SPACES.sub(' ', final_sentences[i].strip())
+    # for i in range(0, len(final_sentences)):
+    #     final_sentences[i] = CONTAINS_MULTIPLE_SPACES.sub(' ', final_sentences[i].strip())
     
     return final_sentences
